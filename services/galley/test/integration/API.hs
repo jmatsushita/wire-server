@@ -2603,7 +2603,7 @@ putQualifiedOtherMemberOk = do
   let qconv = Qualified conv (qDomain qbob)
       expectedMemberUpdateData =
         MemberUpdateData
-          { misTarget = Just alice,
+          { misTarget = qalice,
             misOtrMutedStatus = Nothing,
             misOtrMutedRef = Nothing,
             misOtrArchived = Nothing,
@@ -2628,15 +2628,16 @@ putQualifiedOtherMemberOk = do
 putOtherMemberOk :: TestM ()
 putOtherMemberOk = do
   c <- view tsCannon
-  alice <- randomUser
+  qalice <- randomQualifiedUser
   qbob <- randomQualifiedUser
-  let bob = qUnqualified qbob
+  let alice = qUnqualified qalice
+      bob = qUnqualified qbob
   connectUsers alice (singleton bob)
   conv <- decodeConvId <$> postConv alice [bob] (Just "gossip") [] Nothing Nothing
   let qconv = Qualified conv (qDomain qbob)
       expectedMemberUpdateData =
         MemberUpdateData
-          { misTarget = Just alice,
+          { misTarget = qalice,
             misOtrMutedStatus = Nothing,
             misOtrMutedRef = Nothing,
             misOtrArchived = Nothing,

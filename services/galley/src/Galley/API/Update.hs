@@ -600,7 +600,7 @@ updateLocalSelfMember zusr zcon (Tagged qcid) update = do
   m <- getSelfMemberFromLocalsLegacy zusr (Data.convLocalMembers conv)
   luid <- qualifyLocal zusr
   let targets = NotificationTargets [lmId m] [] []
-  processUpdateMemberEvent luid zcon qcid targets zusr update
+  processUpdateMemberEvent luid zcon qcid targets luid update
 
 updateRemoteSelfMember ::
   UserId ->
@@ -615,7 +615,7 @@ updateRemoteSelfMember zusr zcon rcid update = do
     Just _ -> do
       luid <- qualifyLocal zusr
       let targets = NotificationTargets [zusr] [] []
-      processUpdateMemberEvent luid zcon (unTagged rcid) targets zusr update
+      processUpdateMemberEvent luid zcon (unTagged rcid) targets luid update
 
 updateOtherMember ::
   UserId ->
