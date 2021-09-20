@@ -69,6 +69,7 @@ import Spar.App (GetUserResult (..), Spar, getUserIdByScimExternalId, getUserIdB
 import qualified Spar.Data as Data hiding (clearReplacedBy, deleteIdPRawMetadata, getIdPConfig, getIdPConfigsByTeam, getIdPIdByIssuerWithTeam, getIdPIdByIssuerWithoutTeam, getIdPRawMetadata, setReplacedBy, storeIdPConfig, storeIdPRawMetadata)
 import qualified Spar.Intra.Brig as Brig
 import Spar.Scim.Auth ()
+import Spar.Scim.Types (normalizeLikeStored)
 import qualified Spar.Scim.Types as ST
 import qualified Spar.Sem.IdP as IdPEffect
 import Spar.Sem.SAMLUser (SAMLUser)
@@ -772,7 +773,7 @@ synthesizeStoredUser' uid veid dname handle richInfo accStatus createdAt lastUpd
               ST._vsuActive = ST.scimActiveFlagFromAccountStatus accStatus
             }
 
-  pure $ toScimStoredUser' createdAt lastUpdatedAt baseuri uid scimUser
+  pure $ toScimStoredUser' createdAt lastUpdatedAt baseuri uid (normalizeLikeStored scimUser)
 
 synthesizeScimUser :: ST.ValidScimUser -> Scim.User ST.SparTag
 synthesizeScimUser info =
