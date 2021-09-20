@@ -269,7 +269,7 @@ getConversationsInternal user mids mstart msize = do
   (more, ids) <- getIds mids
   let localConvIds = ids
   cs <-
-    Data.conversations localConvIds
+    Data.localConversations localConvIds
       >>= filterM removeDeleted
       >>= filterM (pure . isMember user . Data.convLocalMembers)
   pure $ Public.ConversationList cs more
@@ -308,7 +308,7 @@ listConversations user (Public.ListConversations mIds qstart msize) = do
       pure (localMore, localConvIds, remoteConvIds)
 
   localInternalConversations <-
-    Data.conversations localConvIds
+    Data.localConversations localConvIds
       >>= filterM removeDeleted
       >>= filterM (pure . isMember user . Data.convLocalMembers)
   localConversations <- mapM (Mapping.conversationView user) localInternalConversations
@@ -345,7 +345,7 @@ listConversationsV2 user (Public.ListConversationsV2 ids) = do
   (foundLocalIds, notFoundLocalIds) <- foundsAndNotFounds (Data.localConversationIdsOf user) localIds
 
   localInternalConversations <-
-    Data.conversations foundLocalIds
+    Data.localConversations foundLocalIds
       >>= filterM removeDeleted
       >>= filterM (pure . isMember user . Data.convLocalMembers)
   localConversations <- mapM (Mapping.conversationView user) localInternalConversations
