@@ -29,9 +29,10 @@ import Control.Monad.Catch
 import Data.Id
 import Data.List1 (list1)
 import Data.Misc (FutureWork (FutureWork))
-import Data.Qualified (Qualified (..), Remote, partitionRemoteOrLocalIds')
+import Data.Qualified
 import Data.Range
 import qualified Data.Set as Set
+import Data.Tagged
 import Data.Time
 import qualified Data.UUID.Tagged as U
 import Galley.API.Error
@@ -93,21 +94,19 @@ ensureNoLegalholdConflicts remotes locals = do
 -- | A helper for creating a regular (non-team) group conversation.
 createRegularGroupConv :: UserId -> ConnId -> NewConvUnmanaged -> Galley ConversationResponse
 createRegularGroupConv zusr zcon (NewConvUnmanaged body) = do
-  localDomain <- viewFederationDomain
+  lusr <- qualifyLocal zusr
   name <- rangeCheckedMaybe (newConvName body)
   let unqualifiedUserIds = newConvUsers body
       qualifiedUserIds = newConvQualifiedUsers body
-  let allUsers = map (`Qualified` localDomain) unqualifiedUserIds <> qualifiedUserIds
+  let allUsers = map (unTagged . qualifyAs lusr) unqualifiedUserIds <> qualifiedUserIds
   checkedUsers <- checkedConvSize allUsers
-  let checkedPartitionedUsers = partitionRemoteOrLocalIds' localDomain <$> checkedUsers
   let (remotes, locals) = fromConvSize checkedPartitionedUsers
   ensureConnected zusr locals
   checkRemoteUsersExist remotes
   ensureNoLegalholdConflicts remotes locals
   c <-
     Data.createConversation
-      localDomain
-      zusr
+      lusr
       name
       (access body)
       (accessRole body)
@@ -123,16 +122,16 @@ createRegularGroupConv zusr zcon (NewConvUnmanaged body) = do
 -- handlers above. Allows both unmanaged and managed conversations.
 createTeamGroupConv :: UserId -> ConnId -> Public.ConvTeamInfo -> Public.NewConv -> Galley ConversationResponse
 createTeamGroupConv zusr zcon tinfo body = do
-  localDomain <- viewFederationDomain
+  lusr <- qualifyLocal zusr
   name <- rangeCheckedMaybe (newConvName body)
   let unqualifiedUserIds = newConvUsers body
       qualifiedUserIds = newConvQualifiedUsers body
-      allUserIds = map (`Qualified` localDomain) unqualifiedUserIds <> qualifiedUserIds
+      allUserIds = map (unTagged . qualifyAs lusr) unqualifiedUserIds <> qualifiedUserIds
   let convTeam = cnvTeamId tinfo
   zusrMembership <- Data.teamMember convTeam zusr
   void $ permissionCheck CreateConversation zusrMembership
   checkedUsers <- checkedConvSize allUserIds
-  let checkedPartitionedUsers = partitionRemoteOrLocalIds' localDomain <$> checkedUsers
+  let checkedPartitionedUsers = partitionRemoteOrLocalIds' (lDomain lusr) <$> checkedUsers
       (remotes, localUserIds) = fromConvSize checkedPartitionedUsers
   convLocalMemberships <- mapM (Data.teamMember convTeam) localUserIds
   ensureAccessRole (accessRole body) (zip localUserIds convLocalMemberships)
@@ -167,8 +166,7 @@ createTeamGroupConv zusr zcon tinfo body = do
   ensureNoLegalholdConflicts remotes localUserIds
   conv <-
     Data.createConversation
-      localDomain
-      zusr
+      lusr
       name
       (access body)
       (accessRole body)
@@ -255,7 +253,6 @@ createConnectConversation usr conn j = do
             & pushConn .~ conn
       conversationCreated usr c
     update n conv = do
-      localDomain <- viewFederationDomain
       let mems = Data.convLocalMembers conv
        in conversationExisted usr
             =<< if
@@ -263,8 +260,9 @@ createConnectConversation usr conn j = do
                   -- we already were in the conversation, maybe also other
                   connect n conv
                 | otherwise -> do
-                  now <- liftIO getCurrentTime
-                  mm <- snd <$> Data.addMember localDomain now (Data.convId conv) usr
+                  lcid <- qualifyLocal (Data.convId conv)
+                  lusr <- qualifyLocal usr
+                  mm <- Data.addMember lcid (unTagged lusr)
                   let conv' =
                         conv
                           { Data.convLocalMembers = Data.convLocalMembers conv <> toList mm

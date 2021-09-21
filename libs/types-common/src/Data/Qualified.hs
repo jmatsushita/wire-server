@@ -27,6 +27,7 @@ module Data.Qualified
     toLocal,
     lUnqualified,
     lDomain,
+    qualifyAs,
     foldQualified,
     renderQualifiedId,
     partitionRemoteOrLocalIds,
@@ -84,6 +85,11 @@ lUnqualified = qUnqualified . unTagged
 lDomain :: Local a -> Domain
 lDomain = qDomain . unTagged
 
+-- | Convert an unqualified value to a qualified one, with the same tag as the
+-- given tagged qualified value.
+qualifyAs :: Tagged t (Qualified x) -> a -> Tagged t (Qualified a)
+qualifyAs (Tagged q) x = Tagged (q $> x)
+
 foldQualified :: Local x -> (Local a -> b) -> (Remote a -> b) -> Qualified a -> b
 foldQualified loc f g q
   | lDomain loc == qDomain q =
@@ -108,7 +114,7 @@ partitionRemoteOrLocalIds' :: Foldable f => Domain -> f (Qualified a) -> ([Remot
 partitionRemoteOrLocalIds' localDomain xs = first (fmap toRemote) $ partitionRemoteOrLocalIds localDomain xs
 
 -- | Index a list of qualified values by domain
-partitionQualified :: [Qualified a] -> Map Domain [a]
+partitionQualified :: Foldable f => f (Qualified a) -> Map Domain [a]
 partitionQualified = foldr add mempty
   where
     add :: Qualified a -> Map Domain [a] -> Map Domain [a]
