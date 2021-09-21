@@ -475,7 +475,8 @@ rmUser user conn = do
         RegularConv
           -- TODO(md): see if this membership checking makes any sense here.
           -- Perhaps we can simply call 'Update.removeMember' and let it handle
-          -- everything.
+          -- everything. If this change is made, probably the call to
+          -- 'leaveTeams' should happen after leaving the conversations.
           | user `isMember` Data.convLocalMembers c -> do
             e <-
               Data.removeLocalMembersFromLocalConv
