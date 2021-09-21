@@ -473,6 +473,9 @@ rmUser user conn = do
         One2OneConv -> Data.removeMember user (Data.convId c) >> return Nothing
         ConnectConv -> Data.removeMember user (Data.convId c) >> return Nothing
         RegularConv
+          -- TODO(md): see if this membership checking makes any sense here.
+          -- Perhaps we can simply call 'Update.removeMember' and let it handle
+          -- everything.
           | user `isMember` Data.convLocalMembers c -> do
             e <-
               Data.removeLocalMembersFromLocalConv
